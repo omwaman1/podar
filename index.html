@@ -50,7 +50,7 @@
   <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     
-    const pdfUrl = 'sample.pdf';
+    const pdfUrl = 'https://exams-assets.embibe.com/exams/wp-content/uploads/2021/03/15164528/Multiplication-Tables-1-to-100.pdf';
     
     async function loadPDF() {
       const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
@@ -99,3 +99,4 @@
   </script>
 </body>
 </html>
+
