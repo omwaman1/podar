@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PDF Flipbook Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- StPageFlip CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/stpageflip@2.0.7/dist/css/stpageflip.min.css" />
+
+  <style>
+    body {
+      margin: 0;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 1rem;
+    }
+
+    #flipbookContainer {
+      width: 90vw;
+      height: 85vh;
+      margin-bottom: 2rem;
+    }
+
+    .page {
+      background: white;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>PDF Flipbook Viewer</h1>
+  <div id="flipbookContainer"></div>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+
+  <!-- StPageFlip -->
+  <script src="https://cdn.jsdelivr.net/npm/stpageflip@2.0.7/dist/js/stpageflip.min.js"></script>
+
+  <script>
+    const pdfUrl = 'sample.pdf'; // 📝 Replace with your PDF file name
+
+    // Load PDF using PDF.js
+    pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+      const total = pdf.numPages;
+      const pages = [];
+
+      const renderPage = pageNum => {
+        return pdf.getPage(pageNum).then(page => {
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          return page.render({ canvasContext: context, viewport }).promise.then(() => canvas);
+        });
+      };
+
+      const loadAllPages = async () => {
+        for (let i = 1; i <= total; i++) {
+          const canvas = await renderPage(i);
+          pages.push(canvas);
+        }
+
+        // Initialize Flipbook
+        const flipBook = new St.PageFlip(document.getElementById('flipbookContainer'), {
+          width: pages[0].width,
+          height: pages[0].height,
+          size: 'stretch',
+          minWidth: 315,
+          maxWidth: 2000,
+          minHeight: 400,
+          maxHeight: 2000,
+          maxShadowOpacity: 0.5,
+          showCover: false,
+          mobileScrollSupport: true
+        });
+
+        // Wrap each canvas in a div
+        const pageElements = pages.map(canvas => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'page';
+          wrapper.appendChild(canvas);
+          return wrapper;
+        });
+
+        flipBook.loadFromHTML(pageElements);
+      };
+
+      loadAllPages();
+    }).catch(err => {
+      alert("Error loading PDF: " + err.message);
+    });
+  </script>
+
+</body>
+</html>
