@@ -1,103 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PDF Flipbook Viewer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- StPageFlip CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/stpageflip@2.0.7/dist/css/stpageflip.min.css" />
-
   <style>
     body {
       margin: 0;
-      background: #f0f0f0;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: Arial, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      font-family: sans-serif;
+      min-height: 100vh;
     }
-
     h1 {
-      text-align: center;
-      padding: 1rem;
+      color: white;
+      margin-bottom: 20px;
     }
-
-    #flipbookContainer {
-      width: 90vw;
-      height: 85vh;
-      margin-bottom: 2rem;
+    #flipbook-container {
+      margin: 20px auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
     }
-
     .page {
       background: white;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .page canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    #loading {
+      color: white;
+      font-size: 18px;
     }
   </style>
 </head>
 <body>
-  <h1>PDF Flipbook Viewer</h1>
-  <div id="flipbookContainer"></div>
+  <h1>📖 PDF Flipbook Viewer</h1>
+  <div id="loading">Loading PDF...</div>
+  <div id="flipbook-container"></div>
 
-  <!-- PDF.js as module -->
-  <script type="module">
-    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.mjs";
-    // StPageFlip is not shipped as module; regular script is fine
-    window.StPageFlipLibReady = new Promise(resolve => {
-      const script = document.createElement('script');
-      script.src = "https://cdn.jsdelivr.net/npm/stpageflip@2.0.7/dist/js/stpageflip.min.js";
-      script.onload = () => resolve(window.St);
-      document.head.appendChild(script);
-    });
-
-    const pdfUrl = 'https://static.qumath.in/static/website/old-cdn-static/multiplication-tables-from-1-to-30.pdf'; // Replace with your PDF file name
-
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
-
-    async function loadFlipbook() {
-      try {
-        const loadingTask = pdfjsLib.getDocument(pdfUrl);
-        const pdf = await loadingTask.promise;
-        const pages = [];
-        for(let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 2 });
-          const canvas = document.createElement('canvas');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const context = canvas.getContext('2d');
-          await page.render({ canvasContext: context, viewport }).promise;
-          pages.push(canvas);
-        }
-        const St = await window.StPageFlipLibReady;
-        const flipBook = new St.PageFlip(document.getElementById('flipbookContainer'), {
-          width: pages[0].width,
-          height: pages[0].height,
-          size: 'stretch',
-          minWidth: 315,
-          maxWidth: 2000,
-          minHeight: 400,
-          maxHeight: 2000,
-          maxShadowOpacity: 0.5,
-          showCover: false,
-          mobileScrollSupport: true
-        });
-        const pageElements = pages.map(canvas => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'page';
-          wrapper.appendChild(canvas);
-          return wrapper;
-        });
-        flipBook.loadFromHTML(pageElements);
-      } catch (err) {
-        document.getElementById('flipbookContainer').innerText =
-          "Error loading PDF: " + err.message;
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+  
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    
+    const pdfUrl = 'sample.pdf';
+    
+    async function loadPDF() {
+      const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+      const container = document.getElementById('flipbook-container');
+      const pages = [];
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        await page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise;
+        
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'page';
+        pageDiv.appendChild(canvas);
+        container.appendChild(pageDiv);
+        pages.push(pageDiv);
       }
+      
+      const pageFlip = new St.PageFlip(container, {
+        width: pages[0].querySelector('canvas').width,
+        height: pages[0].querySelector('canvas').height,
+        size: 'stretch',
+        minWidth: 315,
+        maxWidth: 1000,
+        minHeight: 420,
+        maxHeight: 1350,
+        maxShadowOpacity: 0.5,
+        showCover: true,
+        mobileScrollSupport: false
+      });
+      
+      pageFlip.loadFromHTML(pages);
+      document.getElementById('loading').style.display = 'none';
     }
-
-    loadFlipbook();
+    
+    loadPDF();
   </script>
 </body>
 </html>
-
