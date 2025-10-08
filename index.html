@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Book Test</title>
+  <title>PDF Flipbook Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- StPageFlip CSS -->
@@ -36,43 +36,41 @@
   </style>
 </head>
 <body>
-
   <h1>PDF Flipbook Viewer</h1>
   <div id="flipbookContainer"></div>
 
-  <!-- PDF.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+  <!-- PDF.js as module -->
+  <script type="module">
+    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.mjs";
+    // StPageFlip is not shipped as module; regular script is fine
+    window.StPageFlipLibReady = new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = "https://cdn.jsdelivr.net/npm/stpageflip@2.0.7/dist/js/stpageflip.min.js";
+      script.onload = () => resolve(window.St);
+      document.head.appendChild(script);
+    });
 
-  <!-- StPageFlip -->
-  <script src="https://cdn.jsdelivr.net/npm/stpageflip@2.0.7/dist/js/stpageflip.min.js"></script>
+    const pdfUrl = 'iemo103.pdf'; // Replace with your PDF file name
 
-  <script>
-    const pdfUrl = 'iemo103.pdf'; // 📝 Replace with your PDF file name
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js";
 
-    // Load PDF using PDF.js
-    pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
-      const total = pdf.numPages;
-      const pages = [];
-
-      const renderPage = pageNum => {
-        return pdf.getPage(pageNum).then(page => {
+    async function loadFlipbook() {
+      try {
+        const loadingTask = pdfjsLib.getDocument(pdfUrl);
+        const pdf = await loadingTask.promise;
+        const pages = [];
+        for(let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
           const viewport = page.getViewport({ scale: 2 });
           const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
           canvas.width = viewport.width;
           canvas.height = viewport.height;
-
-          return page.render({ canvasContext: context, viewport }).promise.then(() => canvas);
-        });
-      };
-
-      const loadAllPages = async () => {
-        for (let i = 1; i <= total; i++) {
-          const canvas = await renderPage(i);
+          const context = canvas.getContext('2d');
+          await page.render({ canvasContext: context, viewport }).promise;
           pages.push(canvas);
         }
-
-        // Initialize Flipbook
+        const St = await window.StPageFlipLibReady;
         const flipBook = new St.PageFlip(document.getElementById('flipbookContainer'), {
           width: pages[0].width,
           height: pages[0].height,
@@ -85,27 +83,20 @@
           showCover: false,
           mobileScrollSupport: true
         });
-
-        // Wrap each canvas in a div
         const pageElements = pages.map(canvas => {
           const wrapper = document.createElement('div');
           wrapper.className = 'page';
           wrapper.appendChild(canvas);
           return wrapper;
         });
-
         flipBook.loadFromHTML(pageElements);
-      };
+      } catch (err) {
+        document.getElementById('flipbookContainer').innerText =
+          "Error loading PDF: " + err.message;
+      }
+    }
 
-      loadAllPages();
-    }).catch(err => {
-      alert("Error loading PDF: " + err.message);
-    });
+    loadFlipbook();
   </script>
-
 </body>
 </html>
-
-
-
-
